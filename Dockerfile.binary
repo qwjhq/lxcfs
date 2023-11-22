@@ -1,0 +1,20 @@
+FROM cddharbor.mysql.dbdns.cmbchina.cn/dkcloudv3/kylin-server-v10-sp2:0.0.1-arm64 as builder
+WORKDIR /app
+COPY ./lxcfs.tar.gz /app/lxcfs.tar.gz
+RUN yum install -y meson gcc make fuse3 cmake fuse fuse3-devel help2man python3-jinja2 tar
+RUN  tar zxvf lxcfs.tar.gz ;cd lxcfs && GOOS=amd64 GOARCH=amd64 make 
+
+FROM scratch as archived
+WORKDIR /app
+COPY --from=builder /app/lxcfs/build /usr/lib64/libfuse3.so.3.9.2 /usr/lib64/libulockmgr.so.1.0.1 /app
+
+# use in x86 machine to build arm arch package
+#build
+#docker buildx ls 
+dev1 *       docker-container                              
+  dev10      unix:///var/run/docker.sock running  v0.12.1  linux/amd64*, linux/arm64*, linux/amd64/v2*, linux/386*
+#docker buildx build --builder dev1 \
+    --platform linux/arm64 -f Dockerfile.binary \
+    --build-arg GOARCH=arm64 \
+    --target archived \
+    --output type=local,dest=./local_bin .
